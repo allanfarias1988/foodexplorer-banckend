@@ -1,0 +1,14 @@
+export const up = async (knex) => {
+	await knex.schema.createTable("drinksTags", (table) => {
+		table.string("name").notNullable();
+		table
+			.integer("drinks_id")
+			.references("id")
+			.inTable("drinks")
+			.onDelete("CASCADE");
+	});
+};
+
+export const down = async (knex) => {
+	await knex.schema.dropTable("drinksTags");
+};
