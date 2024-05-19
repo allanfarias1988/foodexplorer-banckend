@@ -12,7 +12,6 @@ class UserController {
 
 		const user = await knexConnect("users").where({ email }).first();
 
-		console.log(user);
 		if (user) {
 			throw new AppError(
 				"Este e-mail já está em uso, por favor escolha outro email",
@@ -28,6 +27,12 @@ class UserController {
 		return response.json({
 			message: "Usuario cadastrado com sucesso",
 		});
+	}
+
+	async index(request, response) {
+		const users = await knexConnect("users").select("*");
+
+		return response.json(users);
 	}
 }
 
