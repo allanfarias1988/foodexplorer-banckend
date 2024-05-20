@@ -22,8 +22,6 @@ class FoodsController {
 		const { name, category, description, price } = request.body;
 		const { id, role } = request.user;
 
-		console.log(request.user);
-
 		if (id === undefined || role !== "admin") {
 			throw new AppError(
 				"Usuário sem autorização para cadastrar ou alterar produtos!",

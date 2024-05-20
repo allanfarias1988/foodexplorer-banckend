@@ -6,9 +6,8 @@ const userCreate = new UsersController();
 
 const usersRouters = Router();
 
-usersRouters.use(verifyToken);
-
 usersRouters.post("/", userCreate.create);
+usersRouters.use(verifyToken);
 usersRouters.get("/", userCreate.index);
 
 export default usersRouters;
