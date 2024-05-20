@@ -18,13 +18,14 @@ async function verifyToken(request, response, next) {
 		const user = await knexConnect("users").where({ id }).first();
 
 		if (!user) {
-			throw new AppError("Usuario não encontrado", 401);
+			throw new AppError("Usuario não encontrado");
 		}
 
 		request.user = {
-			id: user.id,
+			id: Number(user.id),
 			name: user.name,
 			email: user.email,
+			role: user.role,
 		};
 	} catch (error) {
 		throw new AppError("Token inválido!", 401);

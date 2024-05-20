@@ -4,7 +4,7 @@ import { jwtConfig } from "../configs/jwtConfig.js";
 import knexConnect from "../database/knex/knexConnect.js";
 import AppError from "../utils/AppError.js";
 
-class SessionController {
+class SessionsController {
 	async create(request, response) {
 		const { email, password } = request.body;
 
@@ -35,8 +35,8 @@ class SessionController {
 			avatar: user.avatar,
 		};
 
-		return response.json({ userData, token });
+		return response.json({ user: userData, token });
 	}
 }
 
-export default SessionController;
+export default SessionsController;
