@@ -5,22 +5,75 @@ class FoodsController {
 	async index(request, response) {
 		const { id } = request.user;
 
-		if (id === undefined) {
-			throw AppError("Usuário não identificado!");
+		function getAggregateFunction(columnName) {
+			const dbClient = knexConnect.client.config.client;
+			if (dbClient === "mysql" || dbClient === "sqlite3") {
+				return `GROUP_CONCAT(${columnName}.name) as ${columnName}`;
+			}
+			if (dbClient === "postgresql") {
+				return `STRING_AGG(${columnName}.name, ', ') as ${columnName}`;
+			}
+			throw new Error("Unsupported database client");
 		}
 
-		const foods = await knexConnect("foods").where({ user_id: id });
+		try {
+			const foodsQuery = knexConnect("foods")
+				.where("foods.user_id", id)
+				.select("foods.*")
+				.orderBy("foods.name", "asc");
 
-		if (!foods || foods.length === 0) {
-			throw new AppError("Usuário não possui pratos para exibir", 200);
+			const ingredientsQuery = knexConnect("foodsIngredients")
+				.select(
+					"foodsIngredients.food_id",
+					knexConnect.raw(getAggregateFunction("foodsIngredients")),
+				)
+				.groupBy("foodsIngredients.food_id");
+
+			const tagsQuery = knexConnect("foodTags")
+				.select(
+					"foodTags.food_id",
+					knexConnect.raw(getAggregateFunction("foodTags")),
+				)
+				.groupBy("foodTags.food_id");
+
+			const [foods, ingredients, tags] = await Promise.all([
+				foodsQuery,
+				ingredientsQuery,
+				tagsQuery,
+			]);
+
+			const ingredientsMap = ingredients.reduce((acc, ingredient) => {
+				acc[ingredient.food_id] = ingredient.foodsIngredients;
+				return acc;
+			}, {});
+
+			const tagsMap = tags.reduce((acc, tag) => {
+				acc[tag.food_id] = tag.foodTags;
+				return acc;
+			}, {});
+
+			const result = foods.map((food) => ({
+				...food,
+				foodsIngredients: ingredientsMap[food.id] || "",
+				foodTags: tagsMap[food.id] || "",
+			}));
+
+			if (result.length === 0) {
+				throw new AppError("Não foram encontrados pratos cadastrados!", 200);
+			}
+
+			return response.json(result);
+		} catch (error) {
+			if (error instanceof AppError) {
+				throw error;
+			}
+			console.error("Erro:", error.message);
+			throw new AppError(
+				error.message ||
+					"Não foi possível listar os pratos! Tente novamente mais tarde!",
+				error.statusCode || 500,
+			);
 		}
-
-		const foodsTags = await knexConnect("foodTags").where({ user_id: id });
-		const foodsIngredients = await knexConnect("foodsIngredients").where({
-			user_id: id,
-		});
-
-		return response.json(foods);
 	}
 
 	async create(request, response) {
