@@ -298,6 +298,29 @@ class FoodsController {
 			);
 		}
 	}
+
+	async delete(request, response) {
+		const { id } = request.params;
+		const { role } = request.user;
+
+		if (role !== "admin") {
+			throw new AppError("Usuário sem autorização para deletar produtos!", 401);
+		}
+
+		try {
+			const deletedRows = await knexConnect("foods").where({ id }).del();
+
+			if (deletedRows === 0) {
+				throw new AppError("Prato não encontrado!", 404);
+			}
+
+			return response
+				.status(200)
+				.json({ message: "Prato deletado com sucesso!" });
+		} catch (error) {
+			throw new AppError(`Não foi possível deletar o prato! ${error.message}`);
+		}
+	}
 }
 
 export default FoodsController;
