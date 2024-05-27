@@ -76,6 +76,40 @@ class FoodsController {
 		}
 	}
 
+	async show(request, response) {
+		const { id } = request.params;
+
+		try {
+			const food = await knexConnect("foods")
+				.select("foods.*")
+				.where("foods.id", id)
+				.first();
+
+			if (!food) {
+				throw new AppError("Prato não encontrado!", 404);
+			}
+
+			const ingredients = await knexConnect("foodsIngredients")
+				.select("name")
+				.where("food_id", id);
+
+			const tags = await knexConnect("foodTags")
+				.select("name")
+				.where("food_id", id);
+
+			food.ingredients = ingredients.map((ingredient) => ingredient.name);
+			food.tags = tags.map((tag) => tag.name);
+
+			return response.status(200).json(food);
+		} catch (error) {
+			if (error instanceof AppError) {
+				throw error;
+			}
+			console.error("Erro:", error.message);
+			throw new AppError("Não foi possível mostrar o prato!");
+		}
+	}
+
 	async create(request, response) {
 		const { name, category, description, price, tags, ingredients } =
 			request.body;
@@ -89,12 +123,16 @@ class FoodsController {
 		}
 
 		if (!name || typeof name !== "string" || name.trim() === "") {
-			throw new AppError("Nome do prato é obrigatório e não pode estar vazio!");
+			throw new AppError(
+				"Nome do prato é obrigatório e não pode estar vazio!",
+				400,
+			);
 		}
 
 		if (!category || typeof category !== "string" || category.trim() === "") {
 			throw new AppError(
 				"Categoria do prato é obrigatória e não pode estar vazia!",
+				400,
 			);
 		}
 
@@ -105,24 +143,28 @@ class FoodsController {
 		) {
 			throw new AppError(
 				"Descrição do prato é obrigatória e não pode estar vazia!",
+				400,
 			);
 		}
 
 		if (price === undefined || typeof price !== "number" || price <= 0) {
 			throw new AppError(
 				"Preço do prato é obrigatório e deve ser um número positivo!",
+				400,
 			);
 		}
 
 		if (!Array.isArray(tags) || tags.length === 0) {
 			throw new AppError(
 				"Tags são obrigatórias e devem ser um array não vazio!",
+				400,
 			);
 		}
 
 		if (!Array.isArray(ingredients) || ingredients.length === 0) {
 			throw new AppError(
 				"Ingredientes são obrigatórios e devem ser um array não vazio!",
+				400,
 			);
 		}
 
@@ -158,7 +200,7 @@ class FoodsController {
 	}
 
 	async update(request, response) {
-		const { id: foodId } = request.params;
+		const { id: foodId } = request.query;
 		const { name, category, description, price, tags, ingredients } =
 			request.body;
 		const { id, role } = request.user;
@@ -171,24 +213,48 @@ class FoodsController {
 		}
 
 		if (!name || typeof name !== "string" || name.trim() === "") {
-			throw new AppError("Nome do prato é obrigatório e não pode estar vazio!");
+			throw new AppError(
+				"Nome do prato é obrigatório e não pode estar vazio!",
+				400,
+			);
 		}
 
 		if (!category || typeof category !== "string" || category.trim() === "") {
 			throw new AppError(
 				"Categoria do prato é obrigatória e não pode estar vazia!",
+				400,
+			);
+		}
+
+		if (
+			!description ||
+			typeof description !== "string" ||
+			description.trim() === ""
+		) {
+			throw new AppError(
+				"Descrição do prato é obrigatória e não pode estar vazia!",
+				400,
 			);
 		}
 
 		if (price === undefined || typeof price !== "number" || price <= 0) {
 			throw new AppError(
 				"Preço do prato é obrigatório e deve ser um número positivo!",
+				400,
+			);
+		}
+
+		if (!Array.isArray(tags) || tags.length === 0) {
+			throw new AppError(
+				"Tags são obrigatórias e devem ser um array não vazio!",
+				400,
 			);
 		}
 
 		if (!Array.isArray(ingredients) || ingredients.length === 0) {
 			throw new AppError(
-				"Ingredientes são obrigatórios e deve ser uma lista não vazia!",
+				"Ingredientes são obrigatórios e devem ser um array não vazio!",
+				400,
 			);
 		}
 

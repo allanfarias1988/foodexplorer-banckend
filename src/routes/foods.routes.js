@@ -9,5 +9,7 @@ foodsRoutes.use(verifyToken);
 
 foodsRoutes.post("/", foodsController.create);
 foodsRoutes.get("/", foodsController.index);
+foodsRoutes.get("/:id", foodsController.show);
+foodsRoutes.put("/", foodsController.update);
 
 export default foodsRoutes;
