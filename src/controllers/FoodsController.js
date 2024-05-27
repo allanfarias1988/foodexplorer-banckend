@@ -88,6 +88,44 @@ class FoodsController {
 			);
 		}
 
+		if (!name || typeof name !== "string" || name.trim() === "") {
+			throw new AppError("Nome do prato é obrigatório e não pode estar vazio!");
+		}
+
+		if (!category || typeof category !== "string" || category.trim() === "") {
+			throw new AppError(
+				"Categoria do prato é obrigatória e não pode estar vazia!",
+			);
+		}
+
+		if (
+			!description ||
+			typeof description !== "string" ||
+			description.trim() === ""
+		) {
+			throw new AppError(
+				"Descrição do prato é obrigatória e não pode estar vazia!",
+			);
+		}
+
+		if (price === undefined || typeof price !== "number" || price <= 0) {
+			throw new AppError(
+				"Preço do prato é obrigatório e deve ser um número positivo!",
+			);
+		}
+
+		if (!Array.isArray(tags) || tags.length === 0) {
+			throw new AppError(
+				"Tags são obrigatórias e devem ser um array não vazio!",
+			);
+		}
+
+		if (!Array.isArray(ingredients) || ingredients.length === 0) {
+			throw new AppError(
+				"Ingredientes são obrigatórios e devem ser um array não vazio!",
+			);
+		}
+
 		const food = {
 			name,
 			category,
@@ -96,21 +134,24 @@ class FoodsController {
 			user_id: Number(id),
 		};
 
+		const trx = await knexConnect.transaction();
+
 		try {
-			const [foodID] = await knexConnect("foods").insert(food);
+			const [foodID] = await trx("foods").insert(food);
 
 			const foodTags = tags.map((tag) => ({ name: tag, food_id: foodID }));
-
-			await knexConnect("foodTags").insert(foodTags);
+			await trx("foodTags").insert(foodTags);
 
 			const foodIngredients = ingredients.map((ingredient) => ({
 				name: ingredient,
 				food_id: foodID,
 			}));
+			await trx("foodsIngredients").insert(foodIngredients);
 
-			await knexConnect("foodsIngredients").insert(foodIngredients);
+			await trx.commit();
 		} catch (error) {
-			throw new AppError(`Não foi possível inserir o prato!, ${error.message}`);
+			await trx.rollback();
+			throw new AppError(`Não foi possível inserir o prato! ${error.message}`);
 		}
 
 		return response.status(201).json("Prato cadastrado com sucesso!");
