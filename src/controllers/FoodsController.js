@@ -200,7 +200,7 @@ class FoodsController {
 	}
 
 	async update(request, response) {
-		const { id: foodId } = request.query;
+		const { id: foodId } = request.params;
 		const { name, category, description, price, tags, ingredients } =
 			request.body;
 		const { id, role } = request.user;
@@ -318,6 +318,10 @@ class FoodsController {
 				.status(200)
 				.json({ message: "Prato deletado com sucesso!" });
 		} catch (error) {
+			if (error.message) {
+				throw new AppError(error.message);
+			}
+
 			throw new AppError(`Não foi possível deletar o prato! ${error.message}`);
 		}
 	}
