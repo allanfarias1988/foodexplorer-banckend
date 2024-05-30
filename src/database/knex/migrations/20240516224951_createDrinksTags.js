@@ -3,7 +3,7 @@ export const up = async (knex) => {
 		table.increments("id").primary();
 		table.string("name").notNullable();
 		table
-			.integer("tags_id")
+			.integer("drinks_id")
 			.references("id")
 			.inTable("drinks")
 			.onDelete("CASCADE");
