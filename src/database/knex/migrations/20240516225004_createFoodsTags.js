@@ -1,5 +1,6 @@
 export const up = async (knex) => {
-	await knex.schema.createTable("foodTags", (table) => {
+	await knex.schema.createTable("foodsTags", (table) => {
+		table.increments("id").primary();
 		table.string("name").notNullable();
 		table
 			.integer("food_id")
@@ -10,5 +11,5 @@ export const up = async (knex) => {
 };
 
 export const down = async (knex) => {
-	await knex.schema.dropTable("foodTags");
+	await knex.schema.dropTable("foodsTags");
 };

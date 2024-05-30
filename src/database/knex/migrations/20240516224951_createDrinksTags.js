@@ -1,8 +1,9 @@
 export const up = async (knex) => {
 	await knex.schema.createTable("drinksTags", (table) => {
+		table.increments("id").primary();
 		table.string("name").notNullable();
 		table
-			.integer("drinks_id")
+			.integer("tags_id")
 			.references("id")
 			.inTable("drinks")
 			.onDelete("CASCADE");

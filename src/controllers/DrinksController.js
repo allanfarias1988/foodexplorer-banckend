@@ -1,7 +1,7 @@
 import knexConnect from "../database/knex/knexConnect.js";
 import AppError from "../utils/AppError.js";
 
-class FoodsController {
+class DrinksController {
 	async index(request, response) {
 		const { id } = request.user;
 
@@ -17,46 +17,49 @@ class FoodsController {
 		}
 
 		try {
-			const foodsQuery = knexConnect("foods")
-				.where("foods.users_id", id)
-				.select("foods.*")
-				.orderBy("foods.name", "asc");
+			const drinksQuery = knexConnect("drinks")
+				.where("drinks.users_id", id)
+				.select("drinks.*")
+				.orderBy("drinks.name", "asc");
 
-			const ingredientsQuery = knexConnect("foodsIngredients")
+			const ingredientsQuery = knexConnect("drinksIngredients")
 				.select(
-					"food_id",
-					knexConnect.raw(getAggregateFunction("foodsIngredients")),
+					"drinksIngredients.drinks_id",
+					knexConnect.raw(getAggregateFunction("drinksIngredients")),
 				)
-				.groupBy("food_id");
+				.groupBy("drinksIngredients.drinks_id");
 
-			const tagsQuery = knexConnect("foodsTags")
-				.select("food_id", knexConnect.raw(getAggregateFunction("foodsTags")))
-				.groupBy("food_id");
+			const tagsQuery = knexConnect("drinksTags")
+				.select(
+					"drinksTags.drinks_id",
+					knexConnect.raw(getAggregateFunction("drinksTags")),
+				)
+				.groupBy("drinksTags.drinks_id");
 
-			const [foods, ingredients, tags] = await Promise.all([
-				foodsQuery,
+			const [drinks, ingredients, tags] = await Promise.all([
+				drinksQuery,
 				ingredientsQuery,
 				tagsQuery,
 			]);
 
 			const ingredientsMap = ingredients.reduce((acc, ingredient) => {
-				acc[ingredient.food_id] = ingredient.foodsIngredients;
+				acc[ingredient.drinks_id] = ingredient.drinksIngredients;
 				return acc;
 			}, {});
 
 			const tagsMap = tags.reduce((acc, tag) => {
-				acc[tag.food_id] = tag.foodsTags;
+				acc[tag.drinks_id] = tag.drinksTags;
 				return acc;
 			}, {});
 
-			const result = foods.map((food) => ({
-				...food,
-				foodsIngredients: ingredientsMap[food.id] || "",
-				foodsTags: tagsMap[food.id] || "",
+			const result = drinks.map((drinks) => ({
+				...drinks,
+				drinksIngredients: ingredientsMap[drinks.id] || "",
+				drinksTags: tagsMap[drinks.id] || "",
 			}));
 
 			if (result.length === 0) {
-				throw new AppError("Não foram encontrados pratos cadastrados!", 200);
+				throw new AppError("Não foram encontradas bebidas cadastrados!", 200);
 			}
 
 			return response.json(result);
@@ -67,7 +70,7 @@ class FoodsController {
 			console.error("Erro:", error.message);
 			throw new AppError(
 				error.message ||
-					"Não foi possível listar os pratos! Tente novamente mais tarde!",
+					"Não foi possível listar as bebidas! Tente novamente mais tarde!",
 				error.statusCode || 500,
 			);
 		}
@@ -77,33 +80,33 @@ class FoodsController {
 		const { id } = request.params;
 
 		try {
-			const food = await knexConnect("foods")
-				.select("foods.*")
-				.where("foods.id", id)
+			const drinks = await knexConnect("drinks")
+				.select("drinks.*")
+				.where("drinks.id", id)
 				.first();
 
-			if (!food) {
-				throw new AppError("Prato não encontrado!", 404);
+			if (!drinks) {
+				throw new AppError("bebida não encontrado!", 404);
 			}
 
-			const ingredients = await knexConnect("foodsIngredients")
+			const ingredients = await knexConnect("drinksIngredients")
 				.select("name")
-				.where("food_id", id);
+				.where("drinks_id", id);
 
-			const tags = await knexConnect("foodsTags")
+			const tags = await knexConnect("drinksTags")
 				.select("name")
-				.where("food_id", id);
+				.where("drinks_id", id);
 
-			food.ingredients = ingredients.map((ingredient) => ingredient.name);
-			food.tags = tags.map((tag) => tag.name);
+			drinks.ingredients = ingredients.map((ingredient) => ingredient.name);
+			drinks.tags = tags.map((tag) => tag.name);
 
-			return response.status(200).json(food);
+			return response.status(200).json(drinks);
 		} catch (error) {
 			if (error instanceof AppError) {
 				throw error;
 			}
 			console.error("Erro:", error.message);
-			throw new AppError("Não foi possível mostrar o prato!");
+			throw new AppError("Não foi possível mostrar a bebida!");
 		}
 	}
 
@@ -121,14 +124,14 @@ class FoodsController {
 
 		if (!name || typeof name !== "string" || name.trim() === "") {
 			throw new AppError(
-				"Nome do prato é obrigatório e não pode estar vazio!",
+				"Nome da bebida é obrigatório e não pode estar vazio!",
 				400,
 			);
 		}
 
 		if (!category || typeof category !== "string" || category.trim() === "") {
 			throw new AppError(
-				"Categoria do prato é obrigatória e não pode estar vazia!",
+				"Categoria da bebida é obrigatória e não pode estar vazia!",
 				400,
 			);
 		}
@@ -139,33 +142,33 @@ class FoodsController {
 			description.trim() === ""
 		) {
 			throw new AppError(
-				"Descrição do prato é obrigatória e não pode estar vazia!",
+				"Descrição da bebida é obrigatória e não pode estar vazia!",
 				400,
 			);
 		}
 
 		if (price === undefined || typeof price !== "number" || price <= 0) {
 			throw new AppError(
-				"Preço do prato é obrigatório e deve ser um número positivo!",
+				"Preço da bebida é obrigatório e deve ser um número positivo!",
 				400,
 			);
 		}
 
 		if (!Array.isArray(tags) || tags.length === 0) {
 			throw new AppError(
-				"Tags são obrigatórias e devem ser um array não vazio!",
+				"Tags são obrigatórias e devem ser uma lista não vazia!",
 				400,
 			);
 		}
 
 		if (!Array.isArray(ingredients) || ingredients.length === 0) {
 			throw new AppError(
-				"Ingredientes são obrigatórios e devem ser um array não vazio!",
+				"Ingredientes são obrigatórios e devem ser uma lista não vazia!",
 				400,
 			);
 		}
 
-		const food = {
+		const drinks = {
 			name,
 			category,
 			description,
@@ -176,30 +179,31 @@ class FoodsController {
 		const trx = await knexConnect.transaction();
 
 		try {
-			const [foodID] = await trx("foods").insert(food);
+			const [drinksID] = await trx("drinks").insert(drinks);
 
-			const foodsTags = tags.map((tag) => ({ name: tag, food_id: foodID }));
-
-			await trx("foodsTags").insert(foodsTags);
-
-			const foodIngredients = ingredients.map((ingredient) => ({
-				name: ingredient,
-				food_id: foodID,
+			const drinksTags = tags.map((tag) => ({
+				name: tag,
+				drinks_id: drinksID,
 			}));
+			await trx("drinksTags").insert(drinksTags);
 
-			await trx("foodsIngredients").insert(foodIngredients);
+			const drinksIngredients = ingredients.map((ingredient) => ({
+				name: ingredient,
+				drinks_id: drinksID,
+			}));
+			await trx("drinksIngredients").insert(drinksIngredients);
 
 			await trx.commit();
 		} catch (error) {
 			await trx.rollback();
-			throw new AppError(`Não foi possível inserir o prato! ${error.message}`);
+			throw new AppError(`Não foi possível inserir o bebida! ${error.message}`);
 		}
 
-		return response.status(201).json("Prato cadastrado com sucesso!");
+		return response.status(201).json("bebida cadastrado com sucesso!");
 	}
 
 	async update(request, response) {
-		const { id: foodId } = request.params;
+		const { id: drinksId } = request.params;
 		const { name, category, description, price, tags, ingredients } =
 			request.body;
 		const { id, role } = request.user;
@@ -213,14 +217,14 @@ class FoodsController {
 
 		if (!name || typeof name !== "string" || name.trim() === "") {
 			throw new AppError(
-				"Nome do prato é obrigatório e não pode estar vazio!",
+				"Nome do bebida é obrigatório e não pode estar vazio!",
 				400,
 			);
 		}
 
 		if (!category || typeof category !== "string" || category.trim() === "") {
 			throw new AppError(
-				"Categoria do prato é obrigatória e não pode estar vazia!",
+				"Categoria do bebida é obrigatória e não pode estar vazia!",
 				400,
 			);
 		}
@@ -231,14 +235,14 @@ class FoodsController {
 			description.trim() === ""
 		) {
 			throw new AppError(
-				"Descrição do prato é obrigatória e não pode estar vazia!",
+				"Descrição do bebida é obrigatória e não pode estar vazia!",
 				400,
 			);
 		}
 
 		if (price === undefined || typeof price !== "number" || price <= 0) {
 			throw new AppError(
-				"Preço do prato é obrigatório e deve ser um número positivo!",
+				"Preço do bebida é obrigatório e deve ser um número positivo!",
 				400,
 			);
 		}
@@ -257,7 +261,7 @@ class FoodsController {
 			);
 		}
 
-		const food = {
+		const drinks = {
 			name,
 			category,
 			description,
@@ -268,32 +272,37 @@ class FoodsController {
 		const trx = await knexConnect.transaction();
 
 		try {
-			const updatedRows = await trx("foods").where({ id: foodId }).update(food);
+			const updatedRows = await trx("drinks")
+				.where({ id: drinksId })
+				.update(drinks);
 
 			if (updatedRows === 0) {
-				throw new AppError("Prato não encontrado!", 404);
+				throw new AppError("bebida não encontrado!", 404);
 			}
 
-			await trx("foodsTags").where({ food_id: foodId }).del();
-			await trx("foodsIngredients").where({ food_id: foodId }).del();
+			await trx("drinksTags").where({ drinks_id: drinksId }).del();
 
-			const foodsTags = tags.map((tag) => ({ name: tag, food_id: foodId }));
-			await trx("foodsTags").insert(foodsTags);
-
-			const foodIngredients = ingredients.map((ingredient) => ({
-				name: ingredient,
-				food_id: foodId,
+			const drinksTags = tags.map((tag) => ({
+				name: tag,
+				drinks_id: drinksId,
 			}));
-			await trx("foodsIngredients").insert(foodIngredients);
+			await trx("drinksTags").insert(drinksTags);
+
+			await trx("drinksIngredients").where({ drinks_id: drinksId }).del();
+
+			const drinksIngredients = ingredients.map((ingredient) => ({
+				name: ingredient,
+				drinks_id: drinksId,
+			}));
+			await trx("drinksIngredients").insert(drinksIngredients);
 
 			await trx.commit();
 
-			return response.status(200).json("Prato atualizado com sucesso!");
+			return response.status(200).json("bebida atualizado com sucesso!");
 		} catch (error) {
 			await trx.rollback();
-			console.error("Error during update:", error.message);
 			throw new AppError(
-				`Não foi possível atualizar o prato! ${error.message}`,
+				`Não foi possível atualizar o bebida! ${error.message}`,
 			);
 		}
 	}
@@ -307,23 +316,23 @@ class FoodsController {
 		}
 
 		try {
-			const deletedRows = await knexConnect("foods").where({ id }).del();
+			const deletedRows = await knexConnect("drinks").where({ id }).del();
 
 			if (deletedRows === 0) {
-				throw new AppError("Prato não encontrado!", 404);
+				throw new AppError("bebida não encontrado!", 404);
 			}
 
 			return response
 				.status(200)
-				.json({ message: "Prato deletado com sucesso!" });
+				.json({ message: "bebida deletado com sucesso!" });
 		} catch (error) {
 			if (error.message) {
 				throw new AppError(error.message);
 			}
 
-			throw new AppError(`Não foi possível deletar o prato! ${error.message}`);
+			throw new AppError(`Não foi possível deletar o bebida! ${error.message}`);
 		}
 	}
 }
 
-export default FoodsController;
+export default DrinksController;
